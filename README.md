@@ -35,4 +35,4 @@
     
 ## 截图 ##
 
-![recycleview](https://github.com/lusen8/VideoPlayer/screenShot/recycleView.png)  
+![RecycleView](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/recycleView.png)  
