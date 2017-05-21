@@ -1,6 +1,7 @@
 package com.example.lusen.videoplayer;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.PixelFormat;
 import android.media.MediaPlayer;
 import android.os.Bundle;
@@ -12,9 +13,14 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.view.Window;
+import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
+
+import com.example.lusen.videoplayer.util.ScreenRotateUtil;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -28,22 +34,23 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
     private TextView allTimeView;                               /* 显示总时间 */
     private TextView playTimeView;                              /* 显示当前时间 */
     private String playTime;                                    /* 当前时间 */
-    private Thread thread;
+    private LinearLayout control;
+    private Thread thread;                                      /*负责更新时间和进度条的子线程*/
     private String allTime;                                     /* 总时间 */
     private Button play;                                        /* 播放按钮 */
     private Button pause;                                       /* 咱提供按钮 */
     private Button reset;                                       /* 重放按钮 */
     private Button stop;                                        /* 停止按钮 */
-    String urls = "http://mvideo.spriteapp.cn/video/2017/0518/591d47758e2d4_wpc.mp4";
+    String urls = null;
 
     private MediaPlayer mediaPlayer;                            /* 播放器 */
     private SurfaceHolder surface_holder;                       /* Surface 控制器 */
 
+    /*子线程返回当前播放时间，主线程更新UI*/
     private Handler handler1=new Handler(){
         @Override
         public void handleMessage(Message msg){
             if(msg.what == 1){
-                Log.d("子线程返回的",msg.getData().getLong("info")+"");
                 playTime = showData(msg.getData().getLong("info"));
                 seekBar.setProgress((int) msg.getData().getLong("info"));
             }
@@ -52,13 +59,77 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
     private boolean isStartPlaying;     /* 是否开始了播放 */
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        /*
+        * 隐藏状态栏
+        * */
+        Window window = getWindow();
+        requestWindowFeature(Window.FEATURE_NO_TITLE);
+        int flag= WindowManager.LayoutParams.FLAG_FULLSCREEN;
+        //设置当前窗体为全屏显示
+        window.setFlags(flag, flag);
+
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_video);
         initViews();
         initData();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ScreenRotateUtil.getInstance(this).start(this);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        ScreenRotateUtil.getInstance(this).stop();
+    }
+    /**
+     * 横竖屏切换或者输入法等事件触发时调用
+     * 需要在清单文件中配置权限
+     * 需要在当前Activity配置configChanges属性
+     * @param newConfig
+     */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        if (ScreenRotateUtil.getInstance(this).isLandscape()) {
+            //动态设置视频播放区域的为整个屏幕区
+            /*
+            * 遇到玄学了，不知道为啥？原本设置隐藏控制区，和显示控制区的代码，变成了bug，注释掉，全他妈好了，不到那能继续播放，而且还能隐藏控制区，
+            * 算了，不管了，写个TODO 记录一下，日后再来研究研究
+            * */
+            //TODO: 重力感应，旋转后 隐藏/显示 控制区，玄学。
+//            DisplayMetrics dm = new DisplayMetrics();
+//            this.getWindowManager().getDefaultDisplay().getMetrics(dm);
+//            LinearLayout.LayoutParams linearParams = (LinearLayout.LayoutParams) surface_view.getLayoutParams();
+//            linearParams.height = dm.heightPixels;
+//            linearParams.width = dm.widthPixels;
+//            linearParams.setMargins(0, 0, 0, 0);
+//            surface_view.setLayoutParams(linearParams);
+//
+//            control.setVisibility(View.GONE);
+
+        } else {
+            //动态设置视频播放区域为之前的大小
+//            LinearLayout.LayoutParams linearParams = (LinearLayout.LayoutParams) surface_view.getLayoutParams();
+//            linearParams.height = 200;
+//            linearParams.width = 300;
+//            surface_view.setLayoutParams(linearParams);
+//
+//            control.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * 满屏播放
+     */
+    public void scaleFull(View view) {
+        ScreenRotateUtil.getInstance(this).toggleRotate();
     }
 
     /**
@@ -70,6 +141,7 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
         status = (TextView) findViewById(R.id.status);
         allTimeView = (TextView) findViewById(R.id.all_time);
         playTimeView = (TextView) findViewById(R.id.play_time);
+        control = (LinearLayout) findViewById(R.id.control_space);
         play = (Button) findViewById(R.id.play);
         seekBar = (SeekBar) findViewById(R.id.progress);
         pause = (Button) findViewById(R.id.pause);
@@ -110,10 +182,10 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
             }
         };
     }
-            /**
-             * 初始化相关数据变量
-             */
-            private void initData() {
+    /**
+     * 初始化相关数据变量
+     */
+    private void initData() {
 
         /* 获取并设置 SurfaceHolder 对象 */
                 surface_holder = surface_view.getHolder();                      /* 根据 SurfaceView 组件, 获取 SurfaceHolder 对象 */
@@ -134,194 +206,181 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
 
                     @Override
                     public void onStartTrackingTouch(SeekBar seekBar) {
-                        isStartPlaying = false;
                     }
 
                     @Override
                     public void onStopTrackingTouch(SeekBar seekBar) {
-                        isStartPlaying = true;
                     }
                 });
 
             }
-
-            /**
-             * 设置点击事件
-             *
-             * @param view
-             */
-            public void onClick(View view) {
-                int id = view.getId();
-
-                switch (id) {
-                    case R.id.play:
+    /**
+     * 设置点击事件
+     *
+     * @param view
+     */
+    public void onClick(View view) {
+        int id = view.getId();
+        switch (id) {
+            case R.id.play:
             /* 播放该 url 代表的网络视频 */
-                        playVideo(urls);
-                        break;
+            playVideo(urls);
+                break;
 
-                    case R.id.pause:
-                        if (mediaPlayer != null) {
-                            mediaPlayer.pause();
-                            status.setText("暂停");
-                        }
-                        break;
-
-                    case R.id.reset:
-                        if (mediaPlayer != null) {
-                            mediaPlayer.seekTo(0);
-                            mediaPlayer.start();
-                            Log.d("playtime", allTime);
-                            allTimeView.setText(allTime);
-                            status.setText("播放中");
-                        }
-                        break;
-
-                    case R.id.stop:
-                        if (mediaPlayer != null) {
-                            mediaPlayer.stop();
-                            mediaPlayer.release();
-                            isStartPlaying = false;
-                            status.setText("停止");
-                        }
-                        break;
-
-                    default:
-                        break;
+            case R.id.pause:
+                if (mediaPlayer != null) {
+                    mediaPlayer.pause();
+                    status.setText("暂停");
                 }
-            }
+                break;
 
-            /**
-             * 播放网络视频
-             * a. 创建并配置 MediaPlayer 对象 (音量, SurfaceHolder)
-             * b. 为 MediaPlayer 设置错误监听器, 缓冲进度监听器, 播放完毕监听器, 准备完毕监听器
-             * c. 未 MediaPlayer 设置数据源
-             * d. 调用 prepare() 进入 Prapared 状态
-             * e. 调用 start() 进入 Started 状态
-             *
-             * @param dataSource 播放视频的网络地址
-             */
-            private void playVideo(final String dataSource) {
-
-        /* 点击播放有两种情况
-         * a. 第一次点击 : 需要初始化 MediaPlayer 对象, 设置监听器
-         * b. 第二次点击 : 只需要 调用 mediaPlayer 的 start() 方法
-         * 两种情况通过 isStartPlaying 点击时间判断 */
-
-                if (isStartPlaying) {                             /* 如果已经开始了播放, 就直接开始播放 */
+            case R.id.reset:
+                if (mediaPlayer != null) {
+                    mediaPlayer.seekTo(0);
                     mediaPlayer.start();
-                } else {                                          /* 如果是第一次开始播放, 需要初始化 MediaPlayer 设置监听器等操作 */
-                    mediaPlayer = new MediaPlayer();            /* 创建 MediaPlayer 对象 */
-                    mediaPlayer.setAudioStreamType(2);          /* 设置播放音量 */
-                    mediaPlayer.setDisplay(surface_holder);     /* 设置播放载体 */
-
-            /* 设置 MediaPlayer 错误监听器, 如果出现错误就会回调该方法打印错误代码 */
-                    mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
-                        @Override
-                        public boolean onError(MediaPlayer arg0, int what, int extra) {
-                            System.out.println("MediaPlayer 出现错误 what : " + what + " , extra : " + extra);
-                            return false;
-                        }
-                    });
-
-            /* 设置缓冲进度更新监听器 */
-                    mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
-                        @Override
-                        public void onBufferingUpdate(MediaPlayer arg0, int percent) {
-                    /* 打印缓冲的百分比, 如果缓冲 */
-                            System.out.println("缓冲了的百分比 : " + percent + " %");
-                        }
-                    });
-
-            /* 设置播放完毕监听器 */
-                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                        @Override
-                        public void onCompletion(MediaPlayer arg0) {
-                            System.out.println("播放完毕了");
-                            status.setText("播放完毕");
-                        }
-                    });
-
-            /* 设置准备完毕监听器 */
-                    mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
-                        @Override
-                        public void onPrepared(MediaPlayer arg0) {
-                            System.out.println("准备完毕");
-                    /* 设置播放状态 */
-                            status.setText("播放中");
-                            allTimeView.setText(allTime);
-                        }
-                    });
-
-                    new Thread() {
-                        public void run() {
-                            try {
-                                System.out.println("设置数据源");
-
-                                mediaPlayer.setDataSource(dataSource);
-                                mediaPlayer.prepare();
-
-                        /* 打印播放视频的时长 */
-                                System.out.println("视频播放长度 : " + mediaPlayer.getDuration());
-                                seekBar.setMax(mediaPlayer.getDuration());
-
-                                allTime = showData(mediaPlayer.getDuration());
-                                mediaPlayer.start();
-
-                            } catch (IllegalStateException e) {
-                                e.printStackTrace();
-                            } catch (IOException e) {
-                                e.printStackTrace();
-                            }
-                        }
-
-                        ;
-                    }.start();
-
-            /* 设置 MediaPlayer 开始播放标识为 true */
-                    isStartPlaying = true;
-
-            /* 设置播放状态 */
-                    status.setText("正在缓冲");
-                    thread.start();
+                    allTimeView.setText(allTime);
+                    status.setText("播放中");
                 }
+                break;
 
+            case R.id.stop:
+                if (mediaPlayer != null) {
+                    mediaPlayer.stop();
+                    mediaPlayer.release();
+                    isStartPlaying = false;
+                    status.setText("停止");
+                }
+                break;
 
-            }
+            default:
+                break;
+        }
+    }
+/**
+ * 播放网络视频
+ * a. 创建并配置 MediaPlayer 对象 (音量, SurfaceHolder)
+ * b. 为 MediaPlayer 设置错误监听器, 缓冲进度监听器, 播放完毕监听器, 准备完毕监听器
+ * c. 未 MediaPlayer 设置数据源
+ * d. 调用 prepare() 进入 Prapared 状态
+ * e. 调用 start() 进入 Started 状态
+ *
+ * @param dataSource 播放视频的网络地址
+ */
+private void playVideo(final String dataSource) {
 
-            /**
-             * 在 Surface 大小发生改变的时候回调
-             * 实现的 SurfaceHolder.Callback 接口方法
-             */
+    /* 点击播放有两种情况
+     * a. 第一次点击 : 需要初始化 MediaPlayer 对象, 设置监听器
+     * b. 第二次点击 : 只需要 调用 mediaPlayer 的 start() 方法
+     * 两种情况通过 isStartPlaying 点击时间判断 */
+
+    if (isStartPlaying) {                             /* 如果已经开始了播放, 就直接开始播放 */
+        mediaPlayer.start();
+    } else {                                          /* 如果是第一次开始播放, 需要初始化 MediaPlayer 设置监听器等操作 */
+        mediaPlayer = new MediaPlayer();            /* 创建 MediaPlayer 对象 */
+        mediaPlayer.setAudioStreamType(2);          /* 设置播放音量 */
+        mediaPlayer.setDisplay(surface_holder);     /* 设置播放载体 */
+    /* 设置 MediaPlayer 错误监听器, 如果出现错误就会回调该方法打印错误代码 */
+        mediaPlayer.setOnErrorListener(new MediaPlayer.OnErrorListener() {
             @Override
-            public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-                System.out.println("SurfaceHolder.Callback.surfaceChanged : Surface 大小发生改变");
+            public boolean onError(MediaPlayer arg0, int what, int extra) {
+                System.out.println("MediaPlayer 出现错误 what : " + what + " , extra : " + extra);
+                return false;
             }
+        });
 
-            /**
-             * 在 Surface 创建的时候回调, 一般在该方法中开始绘图
-             * 实现的 SurfaceHolder.Callback 接口方法
-             */
+        /* 设置缓冲进度更新监听器 */
+        mediaPlayer.setOnBufferingUpdateListener(new MediaPlayer.OnBufferingUpdateListener() {
             @Override
-            public void surfaceCreated(SurfaceHolder arg0) {
-                System.out.println("SurfaceHolder.Callback.surfaceCreated : Surface 开始创建");
+            public void onBufferingUpdate(MediaPlayer arg0, int percent) {
+                /* 打印缓冲的百分比, 如果缓冲 */
+                System.out.println("缓冲了的百分比 : " + percent + " %");
+                seekBar.setSecondaryProgress(percent * mediaPlayer.getDuration()/100);
             }
+        });
 
-            /**
-             * 在 Surface 销毁之前回调, 在该方法中停止渲染线程, 释放相关资源
-             * 实现的 SurfaceHolder.Callback 接口方法
-             */
+        /* 设置播放完毕监听器 */
+        mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             @Override
-            public void surfaceDestroyed(SurfaceHolder arg0) {
-                System.out.println("SurfaceHolder.Callback.surfaceDestroyed : Surface 销毁");
+            public void onCompletion(MediaPlayer arg0) {
+                System.out.println("播放完毕了");
+                status.setText("播放完毕");
             }
+        });
 
+     /* 设置准备完毕监听器 */
+        mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
-            protected void onDestroy() {
+            public void onPrepared(MediaPlayer arg0) {
+                System.out.println("准备完毕");
+                /* 设置播放状态 */
+                status.setText("播放中");
+                allTimeView.setText(allTime);
+            }
+        });
+         new Thread() {
+             public void run() {
+                 try {
+                     System.out.println("设置数据源");
+                     mediaPlayer.setDataSource(dataSource);
+                     mediaPlayer.prepare();
+                     /* 打印播放视频的时长 */
+                     System.out.println("视频播放长度 : " + mediaPlayer.getDuration());
+                     seekBar.setMax(mediaPlayer.getDuration());
+                     allTime = showData(mediaPlayer.getDuration());
+                     mediaPlayer.start();
+                 } catch (IllegalStateException e) {
+                     e.printStackTrace();
+                 } catch (IOException e) {
+                     e.printStackTrace();
+                 }
+             }
+         }.start();
+
+        /* 设置 MediaPlayer 开始播放标识为 true */
+        isStartPlaying = true;
+
+        /* 设置播放状态 */
+        status.setText("正在缓冲");
+        thread.start();
+    }
+
+
+}
+
+    /**
+     * 在 Surface 大小发生改变的时候回调
+     * 实现的 SurfaceHolder.Callback 接口方法
+     */
+    @Override
+    public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
+            System.out.println("SurfaceHolder.Callback.surfaceChanged : Surface 大小发生改变");
+    }
+    /**
+     * 在 Surface 创建的时候回调, 一般在该方法中开始绘图
+     * 实现的 SurfaceHolder.Callback 接口方法
+     */
+    @Override
+    public void surfaceCreated(SurfaceHolder arg0) {
+        System.out.println("SurfaceHolder.Callback.surfaceCreated : Surface 开始创建");
+    }
+
+    /**
+     * 在 Surface 销毁之前回调, 在该方法中停止渲染线程, 释放相关资源
+     * 实现的 SurfaceHolder.Callback 接口方法
+     */
+    @Override
+    public void surfaceDestroyed(SurfaceHolder arg0) {
+        System.out.println("SurfaceHolder.Callback.surfaceDestroyed : Surface 销毁");
+    }
+
+    @Override
+    protected void onDestroy() {
                 if (mediaPlayer != null)
                     mediaPlayer.release();
                 super.onDestroy();
             }
 
+    /*将获取到的毫秒转化为 00:00 格式*/
     public String showData(long num){
         Date date = new Date(num);
         SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
