@@ -34,11 +34,6 @@
             android:paddingTop="3dp"
             android:progressDrawable="@drawable/layer_progress"
             android:thumb="@drawable/shape_circle" />
-        <!--<ProgressBar-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="wrap_content"-->
-            <!--android:progress=" ,@android:"/>-->
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
