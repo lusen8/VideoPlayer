@@ -1,6 +1,8 @@
 # VideoPlayer
 红岩半期考核
 
+* 温馨提示： `使用此app时，请在wifi条件下使用。流量超出概不负责哈。/坏笑~`
+
 #实现的功能（好少啊）  
 
    **播放控制**  
@@ -35,6 +37,14 @@
     
 ## 截图 ##
 
+### RecycleView ###
 ![RecycleView](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/recycleView.png)
-![播放](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%92%AD%E6%94%BE%E7%AB%96%E5%B1%8F.png)  
+
+### 播放 ###
+![播放](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%92%AD%E6%94%BE.png) 
+
+### 暂停 ###
+![暂停](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%9A%82%E5%81%9C.png)
+
+### 横屏 ###
 ![横屏](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%A8%AA%E5%B1%8F.png)
