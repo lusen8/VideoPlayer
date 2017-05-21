@@ -15,7 +15,7 @@ import android.view.SurfaceView;
 import android.view.View;
 import android.view.Window;
 import android.view.WindowManager;
-import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
@@ -35,12 +35,12 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
     private TextView playTimeView;                              /* 显示当前时间 */
     private String playTime;                                    /* 当前时间 */
     private LinearLayout control;
+    private boolean flagUnPaly = true;
     private Thread thread;                                      /*负责更新时间和进度条的子线程*/
     private String allTime;                                     /* 总时间 */
-    private Button play;                                        /* 播放按钮 */
-    private Button pause;                                       /* 咱提供按钮 */
-    private Button reset;                                       /* 重放按钮 */
-    private Button stop;                                        /* 停止按钮 */
+    private ImageView play;                                        /* 播放按钮 */
+    private ImageView reset;                                       /* 重放按钮 */
+    private ImageView stop;                                        /* 停止按钮 */
     String urls = null;
 
     private MediaPlayer mediaPlayer;                            /* 播放器 */
@@ -142,11 +142,10 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
         allTimeView = (TextView) findViewById(R.id.all_time);
         playTimeView = (TextView) findViewById(R.id.play_time);
         control = (LinearLayout) findViewById(R.id.control_space);
-        play = (Button) findViewById(R.id.play);
+        play = (ImageView) findViewById(R.id.play);
         seekBar = (SeekBar) findViewById(R.id.progress);
-        pause = (Button) findViewById(R.id.pause);
-        reset = (Button) findViewById(R.id.reset);
-        stop = (Button) findViewById(R.id.stop);
+        reset = (ImageView) findViewById(R.id.reset);
+        stop = (ImageView) findViewById(R.id.stop);
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
         Intent intent = getIntent();
@@ -223,16 +222,18 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
         int id = view.getId();
         switch (id) {
             case R.id.play:
-            /* 播放该 url 代表的网络视频 */
-            playVideo(urls);
-                break;
-
-            case R.id.pause:
-                if (mediaPlayer != null) {
-                    mediaPlayer.pause();
-                    status.setText("暂停");
-                }
-                break;
+                if (flagUnPaly){/* 播放该 url 代表的网络视频 */
+                    play.setImageResource(R.drawable.ic_pause);
+                    flagUnPaly = false;
+                    playVideo(urls);
+                }else {/*暂停播放*/
+                    if (mediaPlayer != null) {
+                        play.setImageResource(R.drawable.ic_play_arrow);
+                        mediaPlayer.pause();
+                        status.setText("暂停");
+                        flagUnPaly = true;
+                    }
+                }break;
 
             case R.id.reset:
                 if (mediaPlayer != null) {
@@ -249,11 +250,10 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
                     mediaPlayer.release();
                     isStartPlaying = false;
                     status.setText("停止");
+                    play.setImageResource(R.drawable.ic_play_arrow);
                 }
                 break;
-
-            default:
-                break;
+            default:break;
         }
     }
 /**
@@ -266,7 +266,7 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
  *
  * @param dataSource 播放视频的网络地址
  */
-private void playVideo(final String dataSource) {
+    private void playVideo(final String dataSource) {
 
     /* 点击播放有两种情况
      * a. 第一次点击 : 需要初始化 MediaPlayer 对象, 设置监听器
@@ -284,7 +284,7 @@ private void playVideo(final String dataSource) {
             @Override
             public boolean onError(MediaPlayer arg0, int what, int extra) {
                 System.out.println("MediaPlayer 出现错误 what : " + what + " , extra : " + extra);
-                return false;
+                return true;
             }
         });
 
@@ -304,6 +304,7 @@ private void playVideo(final String dataSource) {
             public void onCompletion(MediaPlayer arg0) {
                 System.out.println("播放完毕了");
                 status.setText("播放完毕");
+                play.setImageResource(R.drawable.ic_play_arrow);
             }
         });
 
@@ -311,10 +312,13 @@ private void playVideo(final String dataSource) {
         mediaPlayer.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
             @Override
             public void onPrepared(MediaPlayer arg0) {
+                //检查是否有过播放记录
+
                 System.out.println("准备完毕");
                 /* 设置播放状态 */
                 status.setText("播放中");
                 allTimeView.setText(allTime);
+
             }
         });
          new Thread() {
@@ -323,11 +327,24 @@ private void playVideo(final String dataSource) {
                      System.out.println("设置数据源");
                      mediaPlayer.setDataSource(dataSource);
                      mediaPlayer.prepare();
+
                      /* 打印播放视频的时长 */
                      System.out.println("视频播放长度 : " + mediaPlayer.getDuration());
+
+//                     SharedPreferences settings =  PreferenceManager.getDefaultSharedPreferences(VideoActivity.this);
+//                     long memoryTime = settings.getLong("current"+urls,0);
+//                     Log.d("第二次获取到的时间",memoryTime+"");
+
                      seekBar.setMax(mediaPlayer.getDuration());
                      allTime = showData(mediaPlayer.getDuration());
                      mediaPlayer.start();
+
+//                     if (memoryTime != 0){
+//                         seekBar.setProgress((int) memoryTime);
+//                         mediaPlayer.seekTo((int) memoryTime);
+//                         playTimeView.setText(showData(memoryTime));
+//                     }
+
                  } catch (IllegalStateException e) {
                      e.printStackTrace();
                  } catch (IOException e) {
@@ -346,45 +363,49 @@ private void playVideo(final String dataSource) {
 
 
 }
-
     /**
-     * 在 Surface 大小发生改变的时候回调
-     * 实现的 SurfaceHolder.Callback 接口方法
+     ** 在 Surface 大小发生改变的时候回调
+     ** 实现的 SurfaceHolder.Callback 接口方法
      */
     @Override
     public void surfaceChanged(SurfaceHolder arg0, int arg1, int arg2, int arg3) {
-            System.out.println("SurfaceHolder.Callback.surfaceChanged : Surface 大小发生改变");
+                System.out.println("SurfaceHolder.Callback.surfaceChanged : Surface 大小发生改变");
     }
-    /**
-     * 在 Surface 创建的时候回调, 一般在该方法中开始绘图
-     * 实现的 SurfaceHolder.Callback 接口方法
-     */
+
+/**
+ * 在 Surface 创建的时候回调, 一般在该方法中开始绘图
+ * 实现的 SurfaceHolder.Callback 接口方法
+ */
     @Override
     public void surfaceCreated(SurfaceHolder arg0) {
         System.out.println("SurfaceHolder.Callback.surfaceCreated : Surface 开始创建");
     }
 
-    /**
-     * 在 Surface 销毁之前回调, 在该方法中停止渲染线程, 释放相关资源
-     * 实现的 SurfaceHolder.Callback 接口方法
-     */
+/**
+ * 在 Surface 销毁之前回调, 在该方法中停止渲染线程, 释放相关资源
+ * 实现的 SurfaceHolder.Callback 接口方法
+ */
+
     @Override
     public void surfaceDestroyed(SurfaceHolder arg0) {
-        System.out.println("SurfaceHolder.Callback.surfaceDestroyed : Surface 销毁");
+         System.out.println("SurfaceHolder.Callback.surfaceDestroyed : Surface 销毁");
     }
 
-    @Override
+@Override
     protected void onDestroy() {
-                if (mediaPlayer != null)
-                    mediaPlayer.release();
-                super.onDestroy();
-            }
-
-    /*将获取到的毫秒转化为 00:00 格式*/
-    public String showData(long num){
-        Date date = new Date(num);
-        SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
-
-        return sdf.format(date);
+//        SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(VideoActivity.this).edit();
+//        editor.putInt("current"+urls,mediaPlayer.getCurrentPosition());
+//        editor.apply();
+//        Log.d("记录的时间",mediaPlayer.getCurrentPosition()+"");
+        if (mediaPlayer != null)
+            mediaPlayer.release();
+        super.onDestroy();
     }
+ /*将获取到的毫秒转化为 00:00 格式*/
+  public String showData(long num){
+     Date date = new Date(num);
+     SimpleDateFormat sdf = new SimpleDateFormat("mm:ss");
+     return sdf.format(date);
+  }
+
 }

@@ -61,10 +61,10 @@ public class MyRecycleAdapter extends RecyclerView.Adapter<MyRecycleAdapter.MyHo
         MyGlide.with(context).load(itemDataArrayList.get(position).getUserImg()).
                                 into(holder.userImg);
         //取视频第一帧做封面
-//        WindowManager wm1 = (WindowManager) this.context
-//                .getSystemService(Context.WINDOW_SERVICE);
-//        int width = wm1.getDefaultDisplay().getWidth();
-        holder.pagerImg.setImageBitmap(changBitmap(itemDataArrayList.get(position).getMainImg(),250,150));
+        try {
+            holder.pagerImg.setImageBitmap(changBitmap(itemDataArrayList.get(position).getMainImg(),250,150));
+        }catch (Exception e){e.printStackTrace();}
+
         holder.pagerImg.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
