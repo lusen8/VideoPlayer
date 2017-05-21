@@ -20,10 +20,12 @@ import android.widget.LinearLayout;
 import android.widget.SeekBar;
 import android.widget.TextView;
 
+import com.example.lusen.videoplayer.date.ItemData;
 import com.example.lusen.videoplayer.util.ScreenRotateUtil;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 
 public class VideoActivity extends AppCompatActivity implements View.OnClickListener, SurfaceHolder.Callback {
@@ -34,14 +36,18 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
     private TextView allTimeView;                               /* 显示总时间 */
     private TextView playTimeView;                              /* 显示当前时间 */
     private String playTime;                                    /* 当前时间 */
-    private LinearLayout control;
-    private boolean flagUnPaly = true;
+    private LinearLayout control;                               /*控制区，并没啥暖用*/
+    private boolean flagUnPaly = true;                         /*用于切换播放和暂停图标的标志*/
     private Thread thread;                                      /*负责更新时间和进度条的子线程*/
     private String allTime;                                     /* 总时间 */
+    private ImageView previous;
+    private ImageView next;
     private ImageView play;                                        /* 播放按钮 */
     private ImageView reset;                                       /* 重放按钮 */
     private ImageView stop;                                        /* 停止按钮 */
-    String urls = null;
+    private String urls = null;
+    private ArrayList<ItemData> itemDataArrayList;
+    private int mPosition = 0;
 
     private MediaPlayer mediaPlayer;                            /* 播放器 */
     private SurfaceHolder surface_holder;                       /* Surface 控制器 */
@@ -145,11 +151,18 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
         play = (ImageView) findViewById(R.id.play);
         seekBar = (SeekBar) findViewById(R.id.progress);
         reset = (ImageView) findViewById(R.id.reset);
+        previous = (ImageView) findViewById(R.id.previous);
+        next = (ImageView) findViewById(R.id.next);
         stop = (ImageView) findViewById(R.id.stop);
         ActionBar actionBar = getSupportActionBar();
         actionBar.hide();
         Intent intent = getIntent();
-        urls = intent.getStringExtra("urlvedio");
+        mPosition = intent.getIntExtra("number",mPosition);
+        Log.d("............",mPosition+"");
+        if ("action".equals(intent.getAction())) {
+            itemDataArrayList = (ArrayList<ItemData>) intent.getSerializableExtra("arrlist");
+            urls = itemDataArrayList.get(mPosition).getHelfVideo();
+        }
         /* 使窗口支持透明度, 把当前 Activity 窗口设置成透明, 设置了该选项就可以使用 setAlpha 等函数设置窗口透明度 */
         getWindow().setFormat(PixelFormat.TRANSPARENT);
 
@@ -234,6 +247,26 @@ public class VideoActivity extends AppCompatActivity implements View.OnClickList
                         flagUnPaly = true;
                     }
                 }break;
+            case R.id.previous:
+                if(mPosition > 0) {
+                    //启动另一个PlayVideoActicity
+                    Intent preIntent = new Intent(VideoActivity.this, VideoActivity.class);
+                    preIntent.putExtra("number", mPosition - 1);
+                    startActivity(preIntent);
+                    //结束当前的活动
+                    finish();
+                }
+                break;
+            case  R.id.next:
+                if(mPosition < itemDataArrayList.size()) {
+                    //启动另一个PlayVideoActicity
+                    Intent nextIntent = new Intent(VideoActivity.this, VideoActivity.class);
+                    nextIntent.putExtra("number", mPosition + 1);
+                    startActivity(nextIntent);
+                    //结束当前的活动
+                    finish();
+                }
+                break;
 
             case R.id.reset:
                 if (mediaPlayer != null) {

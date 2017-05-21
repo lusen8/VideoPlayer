@@ -69,7 +69,11 @@ public class MyRecycleAdapter extends RecyclerView.Adapter<MyRecycleAdapter.MyHo
             @Override
             public void onClick(View view) {
                 Intent intent = new Intent(activity, VideoActivity.class);
-                intent.putExtra("urlvedio",itemDataArrayList.get(position).getHelfVideo());
+
+                intent.putExtra("arrlist",itemDataArrayList);
+                intent.putExtra("number",position);
+                intent.setAction("action");
+
                 context.startActivity(intent);
             }
         });

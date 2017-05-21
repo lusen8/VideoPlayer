@@ -1,10 +1,12 @@
 package com.example.lusen.videoplayer.date;
 
+import java.io.Serializable;
+
 /**
  * Created by lusen on 2017/5/20.
  */
 
-public class ItemData {
+public class ItemData implements Serializable {
     private String name;
     private String time;
     private String userName;
