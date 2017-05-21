@@ -24,11 +24,17 @@
 1、`视频缓冲，下面的进度条两种，当前播放到的进度，当前缓冲到的进度`
 
 
-##各种BUG
+## 各种BUG ##
 
  * `加载时出现卡顿`   
-    原因：由于加载视频第一帧做封面，超级费时。 尝试放入子线程，加载不出来，不要问我为什么，我也不知道。所以，使用时一定注意：`轻划，轻按` /捂脸哭~~
+    原因：由于加载视频第一帧做封面，超级费时。 尝试放入子线程，加载不出来，不要问我为什么，我也很绝望。所以，使用时一定注意：`轻划，轻按` /捂脸哭~~
  * `播放视频时一定几率可能出现点击返回键 直接重启app/抛异常`  
     原因：具体还在排查中，前期猜想可能由于MediaPlay 操作不当，导致触发播放错误监听事件。
  * `视频总时间显示，一定几率第一次点击播放时，不会显示出来视频总时间`  
-    原因：不明。   解决方法：点击reset按键总时间必出。无多大影响。
+    原因：不明。   解决方法：点击reset按键总时间必出。无多大影响。  
+    
+## 截图 ##
+
+![RecycleView](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/recycleView.png)
+![播放](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%92%AD%E6%94%BE%E7%AB%96%E5%B1%8F.png)  
+![横屏](https://github.com/lusen8/VideoPlayer/blob/master/screenShot/%E6%A8%AA%E5%B1%8F.png)
